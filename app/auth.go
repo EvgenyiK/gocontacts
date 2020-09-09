@@ -3,34 +3,34 @@ package app
 import (
 	"context"
 	"fmt"
+	"gocontacts/models"
 	u "gocontacts/utils"
 	"net/http"
 	"os"
 	"strings"
-	"gocontacts/models"
 
 	jwt "github.com/dgrijalva/jwt-go"
 )
 
-var JwtAuthentication = func (next http.Handler) http.Handler {
-	return http.HandlerFunc(func (w http.ResponseWriter, r *http.Request)  {
-		notAuth:= []string{"/api/user/new", "/api/user/login"} //Список эндпоинтов, для которых не требуется авторизация
-		requestPath:= r.URL.Path //текущий путь запроса
+var JwtAuthentication = func(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		notAuth := []string{"/api/user/new", "/api/user/login"} //Список эндпоинтов, для которых не требуется авторизация
+		requestPath := r.URL.Path                               //текущий путь запроса
 		//проверяем, не требует ли запрос аутентификации, обслуживаем запрос, если он не нужен
 		for _, value := range notAuth {
 			if value == requestPath {
-				next.ServeHTTP(w,r)
+				next.ServeHTTP(w, r)
 				return
 			}
 		}
 
-		response:= make(map[string]interface{})
-		tokenHeader:= r.Header.Get("Authorization") //Получение токена
+		response := make(map[string]interface{})
+		tokenHeader := r.Header.Get("Authorization") //Получение токена
 
-		if tokenHeader == "" {//Токен отсутствует, возвращаем  403 http-код Unauthorized
+		if tokenHeader == "" { //Токен отсутствует, возвращаем  403 http-код Unauthorized
 			response = u.Message(false, "Missing auth token")
 			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type","application/json")
+			w.Header().Add("Content-Type", "application/json")
 			u.Respond(w, response)
 			return
 		}
@@ -44,41 +44,40 @@ var JwtAuthentication = func (next http.Handler) http.Handler {
 			return
 		}
 
-		tokenPart:= splitted[1] //Получаем вторую часть токена
-		tk:= &models.Token{}
+		tokenPart := splitted[1] //Получаем вторую часть токена
+		tk := &models.Token{}
 
-		token, err:= jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token)(interface{},error){
+		token, err := jwt.ParseWithClaims(tokenPart, tk, func(token *jwt.Token) (interface{}, error) {
 			return []byte(os.Getenv("token_password")), nil
 		})
-		if err != nil {//Неправильный токен, как правило, возвращает 403 http-код
+		if err != nil { //Неправильный токен, как правило, возвращает 403 http-код
 			response = u.Message(false, "Malformed authentication token")
 			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type","application/json")
+			w.Header().Add("Content-Type", "application/json")
 			u.Respond(w, response)
 			return
 		}
 
-		if !token.Valid {//токен недействителен, возможно, не подписан на этом сервере
+		if !token.Valid { //токен недействителен, возможно, не подписан на этом сервере
 			response = u.Message(false, "Token is not valid")
 			w.WriteHeader(http.StatusForbidden)
-			w.Header().Add("Content-Type","application/json")
+			w.Header().Add("Content-Type", "application/json")
 			u.Respond(w, response)
 			return
 		}
 
 		//Всё прошло хорошо, продолжаем выполнение запроса
 		fmt.Sprintf("User %", tk.UserId) //Полезно для мониторинга
-		ctx:= context.WithValue(r.Context(),"user", tk.UserId)
+		ctx := context.WithValue(r.Context(), "user", tk.UserId)
 		r = r.WithContext(ctx)
-		next.ServeHTTP(w,r)//передать управление следующему обработчику!
-	});
+		next.ServeHTTP(w, r) //передать управление следующему обработчику!
+	})
 }
 
-
 /*
-Комментарии внутри кода объясняют всё, что нужно знать, 
+Комментарии внутри кода объясняют всё, что нужно знать,
 но в основном код создаёт Middleware, чтобы перехватывать все запросы,
- проверять наличие токена аутентификации (токена JWT), проверять, 
+ проверять наличие токена аутентификации (токена JWT), проверять,
  является ли он подлинным и действительным, а затем отправлять ошибку клиенту,
   если возникли какие-то проблемы.
 */

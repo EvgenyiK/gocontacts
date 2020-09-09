@@ -52,11 +52,11 @@ func (account *Account) Validate() (map[string]interface{}, bool) {
 }
 
 func (account *Account) Create() map[string]interface{} {
-	if resp,ok:= account.Validate();!ok {
+	if resp, ok := account.Validate(); !ok {
 		return resp
 	}
 
-	hashedPassword,_:= bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
+	hashedPassword, _ := bcrypt.GenerateFromPassword([]byte(account.Password), bcrypt.DefaultCost)
 	account.Password = string(hashedPassword)
 
 	GetDB().Create(account)
@@ -66,20 +66,19 @@ func (account *Account) Create() map[string]interface{} {
 	}
 
 	//Создать новый токен JWT для новой зарегистрированной учётной записи
-	tk:= &Token{UserId: account.ID}
-	token:= jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
-	tokenString,_:= token.SignedString([]byte(os.Getenv("token_password")))
+	tk := &Token{UserId: account.ID}
+	token := jwt.NewWithClaims(jwt.GetSigningMethod("HS256"), tk)
+	tokenString, _ := token.SignedString([]byte(os.Getenv("token_password")))
 	account.Token = tokenString
 
 	account.Password = "" //удалить пароль
 
-	response:= u.Message(true, "Account has been created")
+	response := u.Message(true, "Account has been created")
 	response["account"] = account
 	return response
 }
 
-
-func Login(email, password string) (map[string]interface{}) {
+func Login(email, password string) map[string]interface{} {
 
 	account := &Account{}
 	err := GetDB().Table("accounts").Where("email = ?", email).First(account).Error
@@ -121,12 +120,12 @@ func GetUser(u uint) *Account {
 }
 
 /*
-Первая часть создаёт две структуры: Token и Account. 
+Первая часть создаёт две структуры: Token и Account.
 Они представляют токен JWT и учётную запись пользователя соответственно.
 
-Функция Validate() проверяет данные, отправленные клиентами, а функция Create() создаёт новую учетную запись и генерирует токен JWT, 
+Функция Validate() проверяет данные, отправленные клиентами, а функция Create() создаёт новую учетную запись и генерирует токен JWT,
 который будет отправлен обратно клиенту, сделавшему запрос.
 
-Функция Login(username, password) аутентифицирует существующего пользователя, затем генерирует токен JWT, 
+Функция Login(username, password) аутентифицирует существующего пользователя, затем генерирует токен JWT,
 если аутентификация прошла успешно.
 */

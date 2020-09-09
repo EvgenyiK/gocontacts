@@ -1,18 +1,18 @@
 package models
 
-import(
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/jinzhu/gorm"
-	"os"
-	"github.com/joho/godotenv"
+import (
 	"fmt"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"github.com/joho/godotenv"
+	"os"
 )
 
 var db *gorm.DB //база данных
 
-func init()  {
-	e:= godotenv.Load()//Загрузить файл .env
-	if e !=nil {
+func init() {
+	e := godotenv.Load() //Загрузить файл .env
+	if e != nil {
 		fmt.Print(e)
 	}
 
@@ -21,10 +21,10 @@ func init()  {
 	dbName := os.Getenv("db_name")
 	dbHost := os.Getenv("db_host")
 
-	dbUri:= fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbName, password) //Создать строку подключения
+	dbUri := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable password=%s", dbHost, username, dbName, password) //Создать строку подключения
 	fmt.Println(dbUri)
 
-	conn,err:= gorm.Open("postgres", dbUri)
+	conn, err := gorm.Open("postgres", dbUri)
 	if err != nil {
 		fmt.Print(err)
 	}
@@ -39,9 +39,8 @@ func GetDB() *gorm.DB {
 	return db
 }
 
-
 /*
-Код делает очень простую вещь. Функция init() автоматически вызывается Go, 
-код извлекает информацию о соединении из .env файла, 
+Код делает очень простую вещь. Функция init() автоматически вызывается Go,
+код извлекает информацию о соединении из .env файла,
 затем строит строку соединения и использует её для соединения с базой данных.
 */
